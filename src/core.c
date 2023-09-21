@@ -3,6 +3,17 @@
 #include "tokenizer.h"
 #include "core.h"
 
+void display_token(token_t *_token)
+{
+    printf("TOKEN { %d, \"%s\", %p }\n", _token->type, _token->lexeme, _token->literal);
+}
+
+void display_token_list(token_list_t *_list)
+{
+    for (node_token_t *it = _list->list; it != NULL; it = it->next)
+        display_token(it->token);
+}
+
 return_t run(int _ac, char **_av)
 {
     FILE *file = NULL;
@@ -17,12 +28,10 @@ return_t run(int _ac, char **_av)
         return final;
     fprintf(stderr, "--------------------------------------------------\n");
     final = tokenize(file, token);
-    fprintf(stderr, "--------------------------------------------------\n");
     if (final.code != 0)
         return final;
-    fprintf(stderr, "--------------------------------------------------\n");
+    display_token_list(token);
     token_list_destroy(token);
     fclose(file);
-    fprintf(stderr, "--------------------------------------------------\n");
     return final;
 }

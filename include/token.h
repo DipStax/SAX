@@ -38,8 +38,6 @@ token_t *token_create(token_e _type, char *_lexem, void *_literal);
 token_t *token_create_noalloc(token_e _type, char *_lexem, void *_literal);
 void token_destroy(token_t *_token);
 
-typedef struct node_token_s node_token_t;
-
 typedef struct node_token_s
 {
     token_t *token;
@@ -60,9 +58,10 @@ typedef struct token_list_s
 } token_list_t;
 
 token_list_t *token_list_create();
-size_t token_list_append(token_list_t *_list, token_t *_token);
-size_t token_list_erase(token_list_t *_list, size_t _pos);
-token_t *token_list_at(token_list_t *_list, size_t _pos);
 void token_list_destroy(token_list_t *_list);
+
+size_t token_list_append(token_list_t *_list, token_t *_token);
+token_t *token_list_at(token_list_t *_list, size_t _pos);
+size_t token_list_erase(token_list_t *_list, size_t _pos);
 
 #endif
