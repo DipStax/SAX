@@ -66,7 +66,6 @@ void tokenizer_source_fetch(tokenizer_t *_tokenizer)
             free(append);
         }
     }
-    // fprintf(stderr, "[tokenizer_source_fetch]: end >\n");
 }
 
 bool tokenizer_is_end(tokenizer_t *_tokenizer, fn_tokenizer _callback)
@@ -162,9 +161,7 @@ void tokenizer_get_identifier(tokenizer_t *_tokenizer, token_t *_token)
 
     while (!tokenizer_is_end(_tokenizer, tokenizer_source_append) && is_alphanumeric(tokenizer_peek(_tokenizer)))
         _tokenizer->current++;
-    if (tokenizer_is_end(_tokenizer, tokenizer_source_append))
-        return;
-    key = malloc(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
+    key = alloc_zero(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
     key = substr(key, _tokenizer->source, _tokenizer->start, _tokenizer->current);
     it = map_find(_tokenizer->build_in, key);
 
@@ -175,9 +172,9 @@ void tokenizer_get_identifier(tokenizer_t *_tokenizer, token_t *_token)
     } else {
         _token->type = Identifier;
         _token->lexeme = key;
+        _token->literal = malloc(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
+        memcpy(_token->literal, _token->lexeme, _tokenizer->current - _tokenizer->start);
     }
-    _token->literal = malloc(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
-    memcpy(_token->literal, _token->lexeme, _tokenizer->current - _tokenizer->start);
 }
 
 void fast_push_strint(map_t *_map, char *_key, int _value)
@@ -199,9 +196,7 @@ void str_map_fn_del(void *_data, bool _size)
 
 void tokenizer_scan(tokenizer_t *_tokenizer)
 {
-    // fprintf(stderr, "[tokenizer_scan] start\n");
     char c = tokenizer_next(_tokenizer);
-    // fprintf(stderr, "[tokenizer_scan] lexing char: %c\n", c);
     token_t *token = token_create(Eof, NULL, NULL);
 
     switch (c) {
@@ -273,7 +268,8 @@ return_t tokenize(FILE *_file, token_list_t *_list)
 
     if (_list == NULL) {
         final.code = 1;
-        final.msg = alloc_zero(sizeof(char) * 40);
+        final.msg = alloc_zero(sizeof(char) * 21);
+        sprintf(final.msg, "List not initialized");
         return final;
     }
     tokenizer = tokenizer_create_wlist(_file, _list);
@@ -284,7 +280,8 @@ return_t tokenize(FILE *_file, token_list_t *_list)
         tokenizer_scan(tokenizer);
         if (tokenizer->list->__last->token->type == Eof) {
             final.code = 1;
-            final.msg = alloc_zero(sizeof(char) * 34);
+            final.msg = alloc_zero(sizeof(char) * 16);
+            sprintf(final.msg, "Token eof reach");
             break;
         }
     }

@@ -7,23 +7,16 @@ return_t check_open_file(char *_path, FILE **_file)
 {
     return_t final = { 0, NULL };
 
-    fprintf(stderr, "[check_open_file] using file: \"%s\"\n", _path);
     if (access(_path, R_OK)) {
         final.code = 1;
         final.msg = alloc_zero(sizeof(char) * (26 + strlen(_path)));
-        sprintf(final.msg, "the file '%s' doesn't exist", _path);
     } else {
-        fprintf(stderr, "[check_open_file] got access right\n");
         (*_file) = fopen(_path, "r");
-        fprintf(stderr, "[check_open_file] is file open: %d\n", (*_file) != NULL);
         if ((*_file) == NULL) {
-            fprintf(stderr, "file note open\n");
             final.code = 1;
             final.msg = alloc_zero(sizeof(char) * (23 + strlen(_path)));
-            sprintf(final.msg, "can't read the file '%s'", _path);
         }
     }
-    fprintf(stderr, "[check_open_file] file open sucefully\n");
     return final;
 }
 

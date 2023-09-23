@@ -8,7 +8,7 @@ typedef enum token_e {
     While, For, Func,
     If, Else,
     Identifier,
-    Type,
+    Type, Return,
     String, NumFloat, NumInt,
     Eq, Ls, Gt,
     EqEq, LsEq, GtEq,

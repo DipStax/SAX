@@ -66,7 +66,6 @@ size_t token_list_append(token_list_t *_list, token_t *_token)
 {
     node_token_t *node = node_token_create(_token);
 
-    // fprintf(stderr, "[node_token_t] append { %d, \"%s\", %p }\n", _token->type, _token->lexeme, _token->literal);
     if (_list->__last) {
         _list->__last->next = node;
         _list->__last->next->prev = _list->__last;
