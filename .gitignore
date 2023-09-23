@@ -1,2 +1,9 @@
 *
+
 !README.md
+
+!include
+!*.h
+!src
+!*.c
+!Makefile
