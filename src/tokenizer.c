@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#define _GNU_SOURCE
+#include <stdio.h>
 
 #include "tokenizer.h"
 
@@ -7,19 +9,26 @@ tokenizer_t *tokenizer_create(FILE *_file)
 {
     tokenizer_t *tokenizer = alloc_zero(sizeof(tokenizer_t));
 
-    tokenizer->list = token_list_create();
-    tokenizer->file = _file;
+    tokenizer_create_wlist(_file, token_list_create());
     return tokenizer;
 }
 
 tokenizer_t *tokenizer_create_wlist(FILE *_file, token_list_t *_list)
 {
     tokenizer_t *tokenizer = alloc_zero(sizeof(tokenizer_t));
-    // fprintf(stderr, "[tokenizer_create_wlist] allocated pointer: %p\n", tokenizer);
 
     tokenizer->list = _list;
     tokenizer->file = _file;
-    // fprintf(stderr, "[tokenizer_create_wlist] result: %p, %p, %d, %d, %d\n", tokenizer->list, tokenizer->file, tokenizer->offset, tokenizer->start, tokenizer->current);
+    tokenizer->build_in = map_create(str_map_fn_cmp, str_map_fn_del);
+    fast_push_strint(tokenizer->build_in, "class", Class);
+    fast_push_strint(tokenizer->build_in, "while", While);
+    fast_push_strint(tokenizer->build_in, "for", For);
+    fast_push_strint(tokenizer->build_in, "if", If);
+    fast_push_strint(tokenizer->build_in, "else", Else);
+    fast_push_strint(tokenizer->build_in, "return", Class);
+    fast_push_strint(tokenizer->build_in, "null", Null);
+    fast_push_strint(tokenizer->build_in, "true", True);
+    fast_push_strint(tokenizer->build_in, "false", False);
     return tokenizer;
 }
 
@@ -30,20 +39,14 @@ void tokenizer_source_append(tokenizer_t *_tokenizer)
     size_t old_source_size = _tokenizer->source_size;
     size_t block_size = 0;
 
-    // fprintf(stderr, "[tokenizer_source_append]: start\n");
     if (_tokenizer->current == _tokenizer->source_size) {
-        // fprintf(stderr, "[tokenizer_source_append] source_size: %d, current: %d\n", _tokenizer->source_size, _tokenizer->current);
-        block_size += getline(&append, &read, _tokenizer->file);
+        block_size = getline(&append, &read, _tokenizer->file);
         if (block_size == -1)
             return;
         _tokenizer->source_size += block_size;
-        // fprintf(stderr, "[tokenizer_source_append] appending with: \"%s\", source_size: %d\n", append, _tokenizer->source_size);
         _tokenizer->source = realloc_zero(_tokenizer->source, old_source_size, _tokenizer->source_size + 1);
-        // fprintf(stderr, "[tokenizer_source_append] appending done: %d, source_size: \"%s\", append: \"%s\"\n", _tokenizer->source_size + 1, _tokenizer->source, append);
         _tokenizer->source = strcat(_tokenizer->source, append);
-        // fprintf(stderr, "[tokenizer_source_append] final source: \"%s\", source_size: %d\n", _tokenizer->source, _tokenizer->source_size);
     }
-    // fprintf(stderr, "[tokenizer_source_append] end\n");
 }
 
 void tokenizer_source_fetch(tokenizer_t *_tokenizer)
@@ -52,18 +55,12 @@ void tokenizer_source_fetch(tokenizer_t *_tokenizer)
     char *append = NULL;
     size_t block_size = 0;
 
-    // fprintf(stderr, "[tokenizer_source_fetch]: start >\n");
-    // fprintf(stderr, "[tokenizer_source_fetch] source_size: %d, current: %d\n", _tokenizer->source_size, _tokenizer->current);
     if (_tokenizer->source_size == 0 || _tokenizer->current == _tokenizer->source_size) {
-        // fprintf(stderr, "[tokenizer_source_fetch] offset: %d > ", _tokenizer->offset);
-        // fprintf(stderr, "new offset: %d\n", _tokenizer->offset);
         block_size = getline(&append, &read, _tokenizer->file);
         if (block_size != -1) {
             _tokenizer->source = append;
             _tokenizer->offset += _tokenizer->source_size;
             _tokenizer->source_size = block_size;
-            // fprintf(stderr, "[tokenizer_source_fetch] number of element read: %d\n", read);
-            // fprintf(stderr, "[tokenizer_source_fetch] new source: \"%s\", size: %d\n", _tokenizer->source, _tokenizer->source_size);
             _tokenizer->current = 0;
         } else {
             free(append);
@@ -74,9 +71,7 @@ void tokenizer_source_fetch(tokenizer_t *_tokenizer)
 
 bool tokenizer_is_end(tokenizer_t *_tokenizer, fn_tokenizer _callback)
 {
-    // fprintf(stderr, "[tokenizer_is_end] start\n");
     _callback(_tokenizer);
-    // fprintf(stderr, "[tokenizer_is_end] end > %d == %d = %d---\n", _tokenizer->current, _tokenizer->source_size - 1, _tokenizer->current == _tokenizer->source_size - 1);
     return _tokenizer->current == _tokenizer->source_size;
 }
 
@@ -84,13 +79,9 @@ bool tokenizer_match(tokenizer_t *_tokenizer, char _c)
 {
     if (tokenizer_is_end(_tokenizer, tokenizer_source_append))
         return false;
-    // fprintf(stderr, "[tokenizer_match] start\n");
-    // fprintf(stderr, "[tokenizer_match] current: %d, expected: %c, char %c\n", _tokenizer->current, _c, _tokenizer->source[_tokenizer->current]);
     if (_tokenizer->source[_tokenizer->current] != _c)
         return false;
     _tokenizer->current++;
-    // fprintf(stderr, "[tokenizer_match] new current: %d\n", _tokenizer->current);
-    // fprintf(stderr, "[tokenizer_match] end\n");
     return true;
 }
 
@@ -166,17 +157,44 @@ void tokenizer_get_number(tokenizer_t *_tokenizer, token_t *_token)
 
 void tokenizer_get_identifier(tokenizer_t *_tokenizer, token_t *_token)
 {
-    // fprintf(stderr, "[tokenizer_get_identifier] current cursor: %d\n", _tokenizer->current);
+    char *key = NULL;
+    node_pair_t *it = NULL;
+
     while (!tokenizer_is_end(_tokenizer, tokenizer_source_append) && is_alphanumeric(tokenizer_peek(_tokenizer)))
         _tokenizer->current++;
     if (tokenizer_is_end(_tokenizer, tokenizer_source_append))
         return;
-    // fprintf(stderr, "[tokenizer_get_identifier] new current cursor: %d\n", _tokenizer->current);
-    _token->type = Identifier;
-    _token->lexeme = malloc(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
-    _token->lexeme = substr(_token->lexeme, _tokenizer->source, _tokenizer->start, _tokenizer->current);
+    key = malloc(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
+    key = substr(key, _tokenizer->source, _tokenizer->start, _tokenizer->current);
+    it = map_find(_tokenizer->build_in, key);
+
+    if (it) {
+        _token->type = *((int *)(it->value));
+        _token->lexeme = NULL;
+        free(key);
+    } else {
+        _token->type = Identifier;
+        _token->lexeme = key;
+    }
     _token->literal = malloc(sizeof(char) * (_tokenizer->current - _tokenizer->start + 1));
     memcpy(_token->literal, _token->lexeme, _tokenizer->current - _tokenizer->start);
+}
+
+void fast_push_strint(map_t *_map, char *_key, int _value)
+{
+    MAP_PARAM(int, value, _value);
+
+    map_push(_map, _key, value);
+}
+
+bool str_map_fn_cmp(void *_left, void *_right)
+{
+    return strcmp((const char *)_left, (const char *)_right) == 0;
+}
+
+void str_map_fn_del(void *_data, bool _size)
+{
+    free(_data);
 }
 
 void tokenizer_scan(tokenizer_t *_tokenizer)
@@ -254,36 +272,21 @@ return_t tokenize(FILE *_file, token_list_t *_list)
     tokenizer_t *tokenizer = NULL;
 
     if (_list == NULL) {
-        // fprintf(stderr, "tokenize: token_list not init");
         final.code = 1;
         final.msg = alloc_zero(sizeof(char) * 40);
-        // sprintf(final.msg, "tokenize: list of token not initialized");
         return final;
     }
-    // fprintf(stderr, "[tokenize] call tokenizer_create_wlist\n");
     tokenizer = tokenizer_create_wlist(_file, _list);
-    // fprintf(stderr, "[tokenize] tokenizer: pointer: %p\n", tokenizer);
-    // fprintf(stderr, "[tokenize] tokenizer: offset: %d\n", tokenizer->offset);
-    // fprintf(stderr, "[tokenize] tokenizer: start: %d\n", tokenizer->start);
-    // fprintf(stderr, "[tokenize] tokenizer: current: %d\n", tokenizer->current);
-    // fprintf(stderr, "--------------------------------------------------\n");
 
     tokenizer_source_fetch(tokenizer);
-    // fprintf(stderr, "[tokenize] entering tokenizing loop: %d\n", tokenizer->source_size);
-    // fprintf(stderr, "[tokenize] source: \"%s\"\n", tokenizer->source);
     while (!tokenizer_is_end(tokenizer, tokenizer_source_fetch)) {
-        // fprintf(stderr, ">>>>>\n");
-        // fprintf(stderr, "[tokenize] iteration { offset: %d, start: %d, current: %d }, source_size: %d\n", tokenizer->offset, tokenizer->start, tokenizer->current, tokenizer->source_size);
         tokenizer->start = tokenizer->current;
         tokenizer_scan(tokenizer);
         if (tokenizer->list->__last->token->type == Eof) {
             final.code = 1;
             final.msg = alloc_zero(sizeof(char) * 34);
-            // sprintf(final.msg, "tokenize: EOF reached before end?");
             break;
         }
-        // fprintf(stderr, "[tokenize] done with this new value: { offset: %d, start: %d, current: %d }\n", tokenizer->offset, tokenizer->start, tokenizer->current);
-        // fprintf(stderr, "<<<<<\n");
     }
     token_list_append(_list, token_create(Eof, "", NULL));
     return final;

@@ -3,8 +3,10 @@
 
 #include <stdbool.h>
 
+#include "utils.h"
+
 #define MAP_PARAM(_type, _name, _value) \
-     _type *_name = malloc(sizeof(_type)); \
+     _type *_name = alloc_zero(sizeof(_type)); \
     (*_name) = _value;
 
 typedef struct node_pair_s

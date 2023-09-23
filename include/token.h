@@ -5,25 +5,20 @@
 
 typedef enum token_e {
     Class,
-    Func,
+    While, For, Func,
+    If, Else,
     Identifier,
     Type,
-    // 3
     String, NumFloat, NumInt,
-    // 6
     Eq, Ls, Gt,
     EqEq, LsEq, GtEq,
-    // 12
     Plus, Minus, Mul, Div, Mod,
     PlusEq, MinusEq, MulEq, DivEq, ModEq,
-    // 22
     Xor, And, Or,
     XorEq, AndEq, OrEq,
-    // 28
     OpenBracket, CloseBracket, OpenPar, ClosePar,
-    // 32
     Comma, SemiColon, TwoPoint, Point,
-    Slash,
+    Null, True, False,
     Eof
 } token_e;
 

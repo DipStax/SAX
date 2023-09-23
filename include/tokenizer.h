@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 #include "token.h"
+#include "map.h"
 
 typedef struct tokenizer_s
 {
@@ -20,6 +21,7 @@ typedef struct tokenizer_s
     size_t source_size;
 
     token_list_t *list;
+    map_t *build_in;
 } tokenizer_t;
 
 typedef void (*fn_tokenizer)(tokenizer_t *);
@@ -39,6 +41,10 @@ char tokenizer_next(tokenizer_t *_tokenizer);
 void tokenizer_get_string(tokenizer_t *_tokenizer, token_t *_token);
 void tokenizer_get_number(tokenizer_t *_tokenizer, token_t *_token);
 void tokenizer_get_identifier(tokenizer_t *_tokenizer, token_t *_token);
+
+void fast_push_strint(map_t *_map, char *_key, int _value);
+bool str_map_fn_cmp(void *_left, void *_right);
+void str_map_fn_del(void *_data, bool _side);
 
 void tokenizer_scan(tokenizer_t *_tokenizer);
 
