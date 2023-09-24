@@ -9,6 +9,7 @@
 
 #include "token.h"
 #include "map.h"
+#include "list.h"
 
 typedef struct tokenizer_s
 {
@@ -20,14 +21,16 @@ typedef struct tokenizer_s
     char *source;
     size_t source_size;
 
-    token_list_t *list;
+    list_t *list;
     map_t *build_in;
 } tokenizer_t;
 
 typedef void (*fn_tokenizer)(tokenizer_t *);
 
 tokenizer_t *tokenizer_create(FILE *_file);
-tokenizer_t *tokenizer_create_wlist(FILE *_file, token_list_t *_list);
+tokenizer_t *tokenizer_create_wlist(FILE *_file, list_t *_list);
+void tokenizer_destroy(tokenizer_t *_tokenizer);
+void tokenizer_destroy_void(void *_tokenizer);
 
 void tokenizer_source_append(tokenizer_t *_tokenizer);
 void tokenizer_source_fetch(tokenizer_t *_tokenizer);
@@ -48,6 +51,6 @@ void str_map_fn_del(void *_data, bool _side);
 
 void tokenizer_scan(tokenizer_t *_tokenizer);
 
-return_t tokenize(FILE *_file, token_list_t *_list);
+return_t tokenize(FILE *_file, list_t *_list);
 
 #endif

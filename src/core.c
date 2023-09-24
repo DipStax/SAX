@@ -8,16 +8,16 @@ void display_token(token_t *_token)
     printf("TOKEN { %d, \"%s\", %p }\n", _token->type, _token->lexeme, _token->literal);
 }
 
-void display_token_list(token_list_t *_list)
+void display_token_list(list_t *_list)
 {
-    for (node_token_t *it = _list->list; it != NULL; it = it->next)
-        display_token(it->token);
+    for (list_it_t *it = _list->__list; it != NULL; it = it->next)
+        display_token((token_t *)(it->value));
 }
 
 return_t run(int _ac, char **_av)
 {
     FILE *file = NULL;
-    token_list_t *token = token_list_create();
+    list_t *token = list_create(0, token_destroy_void);
     return_t final = check_open_file(_av[1], &file);
 
     if (final.code != 0)
@@ -26,7 +26,7 @@ return_t run(int _ac, char **_av)
     if (final.code != 0)
         return final;
     display_token_list(token);
-    token_list_destroy(token);
+    list_destroy(token);
     fclose(file);
     return final;
 }

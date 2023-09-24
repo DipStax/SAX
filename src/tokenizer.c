@@ -9,11 +9,11 @@ tokenizer_t *tokenizer_create(FILE *_file)
 {
     tokenizer_t *tokenizer = alloc_zero(sizeof(tokenizer_t));
 
-    tokenizer_create_wlist(_file, token_list_create());
+    tokenizer_create_wlist(_file, list_create(0, token_destroy_void));
     return tokenizer;
 }
 
-tokenizer_t *tokenizer_create_wlist(FILE *_file, token_list_t *_list)
+tokenizer_t *tokenizer_create_wlist(FILE *_file, list_t *_list)
 {
     tokenizer_t *tokenizer = alloc_zero(sizeof(tokenizer_t));
 
@@ -25,11 +25,26 @@ tokenizer_t *tokenizer_create_wlist(FILE *_file, token_list_t *_list)
     fast_push_strint(tokenizer->build_in, "for", For);
     fast_push_strint(tokenizer->build_in, "if", If);
     fast_push_strint(tokenizer->build_in, "else", Else);
-    fast_push_strint(tokenizer->build_in, "return", Class);
+    fast_push_strint(tokenizer->build_in, "return", Return);
     fast_push_strint(tokenizer->build_in, "null", Null);
     fast_push_strint(tokenizer->build_in, "true", True);
     fast_push_strint(tokenizer->build_in, "false", False);
     return tokenizer;
+}
+
+void tokenizer_destroy(tokenizer_t *_tokenizer)
+{
+    if (_tokenizer->source)
+        free(_tokenizer->source);
+    map_destroy(_tokenizer->build_in);
+    if (_tokenizer->file)
+        fclose(_tokenizer->file);
+    free(_tokenizer);
+}
+
+void tokenizer_destroy_void(void *_tokenizer)
+{
+    tokenizer_destroy((tokenizer_t *)_tokenizer);
 }
 
 void tokenizer_source_append(tokenizer_t *_tokenizer)
@@ -258,10 +273,10 @@ void tokenizer_scan(tokenizer_t *_tokenizer)
             else if (is_alpha(c))
                 tokenizer_get_identifier(_tokenizer, token);
     }
-    token_list_append(_tokenizer->list, token);
+    list_push(_tokenizer->list, (void *)token);
 }
 
-return_t tokenize(FILE *_file, token_list_t *_list)
+return_t tokenize(FILE *_file, list_t *_list)
 {
     return_t final = { 0, NULL };
     tokenizer_t *tokenizer = NULL;
@@ -278,13 +293,14 @@ return_t tokenize(FILE *_file, token_list_t *_list)
     while (!tokenizer_is_end(tokenizer, tokenizer_source_fetch)) {
         tokenizer->start = tokenizer->current;
         tokenizer_scan(tokenizer);
-        if (tokenizer->list->__last->token->type == Eof) {
+        if (((token_t *)(tokenizer->list->__last->value))->type == Eof) {
             final.code = 1;
             final.msg = alloc_zero(sizeof(char) * 16);
             sprintf(final.msg, "Token eof reach");
             break;
         }
     }
-    token_list_append(_list, token_create(Eof, "", NULL));
+    list_push(tokenizer->list, token_create(Eof, "", NULL));
+    tokenizer_destroy(tokenizer);
     return final;
 }

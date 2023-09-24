@@ -2,6 +2,7 @@ P_SERVER=	server
 P_SRC	=	src
 
 SRC		=	$(P_SRC)/main.c \
+			$(P_SRC)/list.c \
 			$(P_SRC)/map.c \
 			$(P_SRC)/utils.c \
 			$(P_SRC)/token.c \

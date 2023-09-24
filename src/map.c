@@ -7,8 +7,8 @@ node_pair_t *node_pair_create(void *_key, void *_value)
 {
     node_pair_t *pair = alloc_zero(sizeof(node_pair_t));
 
-    pair->key = (void *)_key;
-    pair->value = (void *)_value;
+    pair->key = _key;
+    pair->value = _value;
     return pair;
 }
 
@@ -33,11 +33,12 @@ node_pair_t *priv_node_pair_find(node_pair_t *_head, void *_cmp, fn_map_cmp _fn_
 
 void priv_node_pair_clear(node_pair_t *_head, fn_map_del _fn_del)
 {
-    if (_head != NULL)
+    if (_head != NULL) {
         priv_node_pair_clear(_head->next, _fn_del);
-    _fn_del(_head->key, true);
-    _fn_del(_head->value, false);
-    free(_head);
+        _fn_del(_head->key, true);
+        _fn_del(_head->value, false);
+        free(_head);
+    }
 }
 
 
