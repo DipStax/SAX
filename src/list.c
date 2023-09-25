@@ -72,7 +72,7 @@ size_t list_resize(list_t *_list, size_t _nsize)
 
 void *list_at(list_t *_list, size_t _idx)
 {
-    return priv_list_it_at(_list->__list, _idx);
+    return priv_list_it_at(_list->__list, _idx)->value;
 }
 
 void *list_push(list_t *_list, void *_data)
