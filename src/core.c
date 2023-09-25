@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "tokenizer.h"
+#include "lexer.h"
 #include "core.h"
 
 void display_token(token_t *_token)
@@ -22,7 +22,7 @@ return_t run(int _ac, char **_av)
 
     if (final.code != 0)
         return final;
-    final = tokenize(file, token);
+    final = lexer_start(file, token);
     if (final.code != 0)
         return final;
     display_token_list(token);

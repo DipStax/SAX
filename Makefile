@@ -1,13 +1,13 @@
 P_SERVER=	server
 P_SRC	=	src
 
-SRC		=	$(P_SRC)/main.c \
+SRC		=	$(P_SRC)/core.c \
 			$(P_SRC)/list.c \
+			$(P_SRC)/main.c \
 			$(P_SRC)/map.c \
-			$(P_SRC)/utils.c \
 			$(P_SRC)/token.c \
-			$(P_SRC)/tokenizer.c \
-			$(P_SRC)/core.c \
+			$(P_SRC)/lexer.c \
+			$(P_SRC)/utils.c \
 
 OBJ		=	$(SRC:.c=.o)
 
