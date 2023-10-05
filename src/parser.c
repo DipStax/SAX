@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "parser.h"
 #include "utils.h"
@@ -17,7 +18,7 @@ void parser_destroy(parser_t *_parser)
     free(_parser);
 }
 
-expression_t *parser_run(parser_t *_parser)
+parser_return_t parser_run(parser_t *_parser)
 {
     return parser_equality(_parser);
 }
@@ -51,72 +52,100 @@ bool parser_match(parser_t *_parser, size_t _count, ...)
     return false;
 }
 
-expression_t *parser_equality(parser_t *_parser)
+parser_return_t parser_equality(parser_t *_parser)
 {
-    expression_t *expr = parser_comparison(_parser);
+    parser_return_t final = parser_comparison(_parser);
+    parser_return_t ret_cmp = { { 0, NULL }, NULL };
     bin_expr_t *bin_expr = NULL;
 
-    while (parser_match(_parser, 2, EqEq, NotEq)) {
-        // memory leak?
-        bin_expr = bin_expr_create(expr, parser_previous(_parser), parser_comparison(_parser));
-        expr = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+    if (final.ret.code == 0) {
+        while (parser_match(_parser, 2, EqEq, NotEq)) {
+            ret_cmp = parser_comparison(_parser);
+            if (ret_cmp.ret.code)
+                return ret_cmp;
+            bin_expr = bin_expr_create(final.value, parser_previous(_parser), ret_cmp.value);
+            final.value = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+        }
     }
-    return expr;
+    return final;
 }
 
-expression_t *parser_comparison(parser_t *_parser)
+parser_return_t parser_comparison(parser_t *_parser)
 {
-    expression_t *expr = parser_term(_parser);
+    parser_return_t final = parser_term(_parser);
+    parser_return_t ret_term = { { 0, NULL }, NULL };
     bin_expr_t *bin_expr = NULL;
 
-    while (parser_match(_parser, 4, Gt, Ls, GtEq, LsEq)) {
-        bin_expr = bin_expr_create(expr, parser_previous(_parser), parser_term(_parser));
-        expr = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+    if (final.ret.code == 0) {
+        while (parser_match(_parser, 4, Gt, Ls, GtEq, LsEq)) {
+            ret_term = parser_term(_parser);
+            if (ret_term.ret.code)
+                return ret_term;
+            bin_expr = bin_expr_create(final.value, parser_previous(_parser), ret_term.value);
+            final.value = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+        }
     }
-    return expr;
+    return final;
 }
 
-expression_t *parser_term(parser_t *_parser)
+parser_return_t parser_term(parser_t *_parser)
 {
-    expression_t *expr = parser_factor(_parser);
+    parser_return_t final = parser_factor(_parser);
+    parser_return_t ret_fac = { { 0, NULL }, NULL };
     bin_expr_t *bin_expr = NULL;
 
-    while (parser_match(_parser, 2, Plus, Minus)) {
-        bin_expr = bin_expr_create(expr, parser_previous(_parser), parser_factor(_parser));
-        expr = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+    if (final.ret.code) {
+        while (parser_match(_parser, 2, Plus, Minus)) {
+            ret_fac = parser_factor(_parser);
+            if (ret_fac.ret.code)
+                return ret_fac;
+            bin_expr = bin_expr_create(final.value, parser_previous(_parser), ret_fac.value);
+            final.value = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+        }
     }
-    return expr;
+    return final;
 }
 
-expression_t *parser_factor(parser_t *_parser)
+parser_return_t parser_factor(parser_t *_parser)
 {
-    expression_t *expr = parser_unary(_parser);
+    parser_return_t final = parser_unary(_parser);
+    parser_return_t ret_unary = { { 0, NULL }, NULL };
     bin_expr_t *bin_expr = NULL;
 
-    while (parser_match(_parser, 2, Div, Mul)) {
-        bin_expr = bin_expr_create(expr, parser_previous(_parser), parser_unary(_parser));
-        expr = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+    if (final.ret.code) {
+        while (parser_match(_parser, 2, Div, Mul)) {
+            ret_unary = parser_unary(_parser);
+            if (ret_unary.ret.code)
+                return ret_unary;
+            bin_expr = bin_expr_create(final.value, parser_previous(_parser), ret_unary.value);
+            final.value = expression_create(Binary, (void *)bin_expr, bin_expr_destroy_void);
+        }
     }
-    return expr;
+    return final;
 }
 
-expression_t *parser_unary(parser_t *_parser)
+parser_return_t parser_unary(parser_t *_parser)
 {
-    expression_t *expr = NULL;
+    parser_return_t final = { { 0, NULL }, NULL };
+    parser_return_t ret_unary = { { 0, NULL }, NULL };
     unary_expr_t *unary_expr = NULL;
 
     if (parser_match(_parser, 2, Not, Minus)) {
-        unary_expr = unary_expr_create(parser_previous(_parser), parser_unary(_parser));
-        expr = expression_create(Unary, (void *)unary_expr, unary_expr_destroy_void);
-        return expr;
+        ret_unary =parser_unary(_parser);
+        if (ret_unary.ret.code)
+            return ret_unary;
+        unary_expr = unary_expr_create(parser_previous(_parser), ret_unary.value);
+        final.value = expression_create(Unary, (void *)unary_expr, unary_expr_destroy_void);
+    } else {
+        final = parser_primary(_parser);
     }
-    return parser_primary(_parser);
+    return final;
 }
 
-expression_t *parser_primary(parser_t *_parser)
+parser_return_t parser_primary(parser_t *_parser)
 {
     token_t *token = parser_peek(_parser);
-    expression_t *expr = NULL;
+    parser_return_t final = { { 0, NULL }, NULL };
     literal_expr_t *literal_expr = NULL;
 
     if (parser_match(_parser, 3, False, True, Null)) {
@@ -124,11 +153,22 @@ expression_t *parser_primary(parser_t *_parser)
     } else if (parser_match(_parser, 2, NumFloat, NumInt, String)) {
         literal_expr = literal_expr_create(token->literal);
     } else if (token->type == OpenPar) {
-        expr = parser_run(_parser);
-        if (parser_peek(_parser)->type != ClosePar)
-            return NULL; // memory leak?
+        final = parser_run(_parser);
+        if (final.ret.code)
+            return final;
+        if (parser_peek(_parser)->type != ClosePar) {
+            final.ret.code = 1;
+            final.ret.msg = strdup("expected '(' after expression");
+            return final;
+        }
         (_parser->cursor)++;
-        return expression_create(Gourping, (void *)expr, groupe_expr_destroy_void);
+        final.value = expression_create(Gourping, (void *)final.value, groupe_expr_destroy_void);
+        return final;
+    } else {
+        final.ret.code = 1;
+        final.ret.msg = strdup("expected expression");
+        return final;
     }
-    return expression_create(Literal, (void *)literal_expr, literal_expr_destroy_void);
+    final.value = expression_create(Literal, (void *)literal_expr, literal_expr_destroy_void);
+    return final;
 }
