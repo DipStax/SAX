@@ -155,7 +155,7 @@ void lexer_get_number(lexer_t *_lexer, token_t *_token)
         _token->type = NumInt;
     }
     _token->lexeme = alloc_zero(sizeof(char) * (_lexer->current - _lexer->start + 1));
-    _token->lexeme = substr(_token->lexeme, _lexer->source, _lexer->start, _lexer->current);
+    _token->lexeme = substr(_token->lexeme, _lexer->source, _lexer->start, _lexer->current - _lexer->start);
     if (is_float) {
         double double_value = strtod(_token->lexeme, &ptr);
 
@@ -177,7 +177,7 @@ void lexer_get_identifier(lexer_t *_lexer, token_t *_token)
     while (!lexer_is_end(_lexer, lexer_source_append) && is_alphanumeric(lexer_peek(_lexer)))
         _lexer->current++;
     key = alloc_zero(sizeof(char) * (_lexer->current - _lexer->start + 1));
-    key = substr(key, _lexer->source, _lexer->start, _lexer->current);
+    key = substr(key, _lexer->source, _lexer->start, _lexer->current - _lexer->start);
     it = map_find(_lexer->build_in, key);
 
     if (it) {
@@ -187,8 +187,7 @@ void lexer_get_identifier(lexer_t *_lexer, token_t *_token)
     } else {
         _token->type = Identifier;
         _token->lexeme = key;
-        _token->literal = malloc(sizeof(char) * (_lexer->current - _lexer->start + 1));
-        memcpy(_token->literal, _token->lexeme, _lexer->current - _lexer->start);
+        _token->literal = strdup(key);
     }
 }
 
@@ -278,7 +277,7 @@ void lexer_scan(lexer_t *_lexer)
     list_push(_lexer->list, (void *)token);
 }
 
-return_t lexer_start(FILE *_file, list_t *_list)
+return_t lexer_run(FILE *_file, list_t *_list)
 {
     return_t final = { 0, NULL };
     lexer_t *lexer = NULL;

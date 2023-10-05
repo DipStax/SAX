@@ -51,6 +51,6 @@ void str_map_fn_del(void *_data, bool _side);
 
 void lexer_scan(lexer_t *_lexer);
 
-return_t lexer_start(FILE *_file, list_t *_list);
+return_t lexer_run(FILE *_file, list_t *_list);
 
 #endif
