@@ -2,6 +2,7 @@ P_SERVER=	server
 P_SRC	=	src
 
 SRC		=	$(P_SRC)/core.c \
+			$(P_SRC)/debug.c \
 			$(P_SRC)/expression.c \
 			$(P_SRC)/list.c \
 			$(P_SRC)/main.c \
@@ -16,7 +17,7 @@ OBJ		=	$(SRC:.c=.o)
 NAME	=	SAX
 
 CC = gcc
-CPPFLAGS=	-I./include -Wall -Werror
+CPPFLAGS=	-I./include -Wall -Werror -DDEBUG
 
 all:		$(NAME)
 

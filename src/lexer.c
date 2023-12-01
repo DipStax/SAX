@@ -220,7 +220,7 @@ void lexer_scan(lexer_t *_lexer)
         case '\n':
             token_destroy(token);
             return;
-        case '(': token->type = ClosePar;
+        case '(': token->type = OpenPar;
             break;
         case ')': token->type = ClosePar;
             break;

@@ -1,32 +1,54 @@
 #include <stdlib.h>
 
-#include "lexer.h"
 #include "core.h"
-
-void display_token(token_t *_token)
-{
-    printf("TOKEN { %d, \"%s\", %p }\n", _token->type, _token->lexeme, _token->literal);
-}
-
-void display_token_list(list_t *_list)
-{
-    for (list_it_t *it = _list->__list; it != NULL; it = it->next)
-        display_token((token_t *)(it->value));
-}
 
 return_t run(int _ac, char **_av)
 {
-    FILE *file = NULL;
-    list_t *token = list_create(0, token_destroy_void);
-    return_t final = check_open_file(_av[1], &file);
+    list_t *token = NULL;
+    expression_t *expr = NULL;
+    return_t ret = { 0, NULL };
 
-    if (final.code != 0)
-        return final;
-    final = lexer_start(file, token);
-    if (final.code != 0)
-        return final;
+    ret = run_lexer(_av[1], &token);
+    if (ret.code)
+        return ret;
+    printf("token ok\n");
+#ifdef DEBUG
     display_token_list(token);
-    list_destroy(token);
+#endif
+    ret = run_parser(token, &expr);
+    if (ret.code)
+        return ret;
+    printf("parser ok %p\n", expr);
+#ifdef DEBUG
+    display_expression(expr);
+#endif
+    return ret;
+}
+
+return_t run_lexer(char *_path, list_t **_token)
+{
+    FILE *file = NULL;
+    return_t ret = check_open_file(_path, &file);
+
+    if (ret.code)
+        return ret;
+    printf("file ok\n");
+    (*_token) = list_create(0, token_destroy_void);
+    printf("token_list ok\n");
+    ret = lexer_run(file, (*_token));
+    if (ret.code)
+        list_destroy(*_token);
     fclose(file);
-    return final;
+    return ret;
+}
+
+return_t run_parser(list_t *_token, expression_t **_expr)
+{
+    parser_t *parser = parser_create(_token);
+    parser_return_t ret = parser_run(parser);
+
+    if (ret.ret.code)
+        parser_destroy(parser);
+    (*_expr) = ret.value;
+    return ret.ret;
 }
